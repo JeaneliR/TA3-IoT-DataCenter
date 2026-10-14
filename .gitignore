@@ -1,0 +1,9 @@
+node_modules/
+.env
+*.log
+tools/
+influxdb-data/
+grafana-data/
+.node-red/
+credentials.json
+flows_cred.json

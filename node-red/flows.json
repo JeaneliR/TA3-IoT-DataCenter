@@ -1,0 +1,248 @@
+[
+    {
+        "id": "267b1061c51745a8",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "7572539cf8c4c837",
+        "type": "mqtt-broker",
+        "name": "Mosquitto Local",
+        "broker": "localhost",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "0a62270954506c4b",
+        "type": "influxdb",
+        "hostname": "127.0.0.1",
+        "port": 8086,
+        "protocol": "http",
+        "database": "database",
+        "name": "InfluxDB Local",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "2.0",
+        "url": "http://localhost:8086",
+        "timeout": 10,
+        "rejectUnauthorized": true
+    },
+    {
+        "id": "49c26fcafeab7571",
+        "type": "mqtt-broker",
+        "name": "Mosquitto público Wokwi",
+        "broker": "test.mosquitto.org",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "845161a1e65f8a8a",
+        "type": "mqtt in",
+        "z": "267b1061c51745a8",
+        "name": "Lecturas MQTT",
+        "topic": "datacenter/sala1/#",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "7572539cf8c4c837",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 220,
+        "y": 220,
+        "wires": [
+            [
+                "41fabe01d53a2264"
+            ]
+        ]
+    },
+    {
+        "id": "6777a2400a5e0730",
+        "type": "debug",
+        "z": "267b1061c51745a8",
+        "name": "Ver lectura MQTT",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 630,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "41fabe01d53a2264",
+        "type": "function",
+        "z": "267b1061c51745a8",
+        "name": "Validar y clasificar",
+        "func": "const datos = msg.payload;\n\nif (typeof datos !== \"object\" || datos === null) {\n    node.warn(\"Mensaje inválido: se esperaba un objeto JSON\", msg);\n    return null;\n}\n\nconst valorTemperatura =\n    datos.temperatura !== undefined\n        ? datos.temperatura\n        : datos.valor;\n\nconst temperatura = Number(valorTemperatura);\nconst iluminacion = Number(datos.iluminacion);\n\nif (!Number.isFinite(temperatura)) {\n    node.warn(\"Lectura de temperatura inválida\", msg);\n    return null;\n}\n\nlet estadoTemperatura;\n\nif (temperatura < 28) {\n    estadoTemperatura = \"normal\";\n} else if (temperatura < 30) {\n    estadoTemperatura = \"advertencia\";\n} else {\n    estadoTemperatura = \"critica\";\n}\n\nmsg.payload = {\n    dispositivo: String(\n        datos.dispositivo || \"esp32-sala1\"\n    ),\n    temperatura: temperatura,\n    iluminacion: Number.isFinite(iluminacion)\n        ? iluminacion\n        : null,\n    estado_temperatura: estadoTemperatura,\n    fecha_hora: new Date().toISOString()\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 430,
+        "y": 220,
+        "wires": [
+            [
+                "6777a2400a5e0730",
+                "33216ae268f4a335",
+                "950f33f8b508b43e"
+            ]
+        ]
+    },
+    {
+        "id": "33216ae268f4a335",
+        "type": "switch",
+        "z": "267b1061c51745a8",
+        "name": "Detectar estado crítico",
+        "property": "payload.estado_temperatura",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "critica",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 660,
+        "y": 220,
+        "wires": [
+            [
+                "f9fc8b9e79d1a435"
+            ]
+        ]
+    },
+    {
+        "id": "f9fc8b9e79d1a435",
+        "type": "debug",
+        "z": "267b1061c51745a8",
+        "name": "ALERTA CRÍTICA",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 910,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "950f33f8b508b43e",
+        "type": "function",
+        "z": "267b1061c51745a8",
+        "name": "Preparar para InfluxDB",
+        "func": "const datos = msg.payload;\n\nconst campos = {\n    temperatura: Number(datos.temperatura)\n};\n\nconst iluminacion = Number(datos.iluminacion);\n\nif (Number.isFinite(iluminacion)) {\n    campos.iluminacion = iluminacion;\n}\n\nconst etiquetas = {\n    dispositivo: String(datos.dispositivo || \"esp32-sala1\"),\n    estado: String(datos.estado_temperatura || \"desconocido\")\n};\n\nmsg.payload = [campos, etiquetas];\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 660,
+        "y": 300,
+        "wires": [
+            [
+                "b8c1d5f4ce79c3fc"
+            ]
+        ]
+    },
+    {
+        "id": "b8c1d5f4ce79c3fc",
+        "type": "influxdb out",
+        "z": "267b1061c51745a8",
+        "influxdb": "0a62270954506c4b",
+        "name": "Guardar en InfluxDB",
+        "measurement": "lecturas_datacenter",
+        "precision": "",
+        "retentionPolicy": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "TA3-IoT",
+        "bucket": "sensores_datacenter",
+        "x": 920,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "ecfbbacfbf4ff382",
+        "type": "mqtt in",
+        "z": "267b1061c51745a8",
+        "name": "Lecturas Wokwi MQTT",
+        "topic": "jeaneli-u22219824/datacenter/sala1/lecturas",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "49c26fcafeab7571",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 200,
+        "y": 160,
+        "wires": [
+            [
+                "41fabe01d53a2264"
+            ]
+        ]
+    }
+]
